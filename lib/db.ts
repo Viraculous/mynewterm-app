@@ -58,6 +58,32 @@ export type CreateApplicationInput = {
   date_added?: string | null;
 };
 
+export type StatementRow = {
+  id: number;
+  title: string;
+  school_name: string | null;
+  role_type: string | null;
+  statement_text: string;
+  word_count: number | null;
+  date_saved: string | null;
+  tags: string | null;
+};
+
+export type SaveStatementInput = {
+  title: string;
+  school_name?: string | null;
+  role_type?: string | null;
+  statement_text: string;
+  word_count?: number | null;
+  date_saved?: string | null;
+  tags?: string | null;
+};
+
+export type UpdateStatementInput = {
+  title?: string;
+  tags?: string | null;
+};
+
 export function db() {
   if (_db) return _db;
 
@@ -94,6 +120,19 @@ export function db() {
       closing_date TEXT,
       date_added TEXT,
       updated_at TEXT
+    );
+  `);
+
+  _db.exec(`
+    CREATE TABLE IF NOT EXISTS statements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      school_name TEXT,
+      role_type TEXT,
+      statement_text TEXT NOT NULL,
+      word_count INTEGER,
+      date_saved TEXT,
+      tags TEXT
     );
   `);
 
@@ -190,6 +229,80 @@ export function updateApplicationStatement(id: number, statement: string) {
 
 export function deleteApplication(id: number) {
   db().prepare(`DELETE FROM applications WHERE id = ?`).run(id);
+}
+
+export function getAllStatements(): StatementRow[] {
+  return db()
+    .prepare(
+      `SELECT id, title, school_name, role_type, statement_text, word_count, date_saved, tags
+       FROM statements
+       ORDER BY date_saved DESC, id DESC`,
+    )
+    .all() as StatementRow[];
+}
+
+export function saveStatement(data: SaveStatementInput): number {
+  const nowIso = new Date().toISOString();
+  const result = db()
+    .prepare(
+      `INSERT INTO statements (
+        title,
+        school_name,
+        role_type,
+        statement_text,
+        word_count,
+        date_saved,
+        tags
+      ) VALUES (
+        @title,
+        @school_name,
+        @role_type,
+        @statement_text,
+        @word_count,
+        COALESCE(@date_saved, @now),
+        @tags
+      )`,
+    )
+    .run({
+      title: data.title,
+      school_name: data.school_name ?? null,
+      role_type: data.role_type ?? null,
+      statement_text: data.statement_text,
+      word_count: data.word_count ?? null,
+      date_saved: data.date_saved ?? null,
+      tags: data.tags ?? null,
+      now: nowIso,
+    });
+
+  return Number(result.lastInsertRowid);
+}
+
+export function deleteStatement(id: number) {
+  db().prepare(`DELETE FROM statements WHERE id = ?`).run(id);
+}
+
+export function updateStatement(id: number, data: UpdateStatementInput) {
+  const setClauses: string[] = [];
+  const params: Record<string, unknown> = { id };
+
+  if (typeof data.title === "string") {
+    setClauses.push("title = @title");
+    params.title = data.title;
+  }
+  if (data.tags === null || typeof data.tags === "string") {
+    setClauses.push("tags = @tags");
+    params.tags = data.tags;
+  }
+
+  if (!setClauses.length) return;
+
+  db()
+    .prepare(
+      `UPDATE statements
+       SET ${setClauses.join(", ")}
+       WHERE id = @id`,
+    )
+    .run(params);
 }
 
 export function getProfileRow(): ProfileRow {
