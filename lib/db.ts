@@ -157,12 +157,11 @@ export async function getProfile(): Promise<Profile & { updated_at: string }> {
     }
   }
 
-  const updatedAt =
-    row?.updated_at instanceof Date
-      ? row.updated_at.toISOString()
-      : typeof row?.updated_at === "string"
-        ? row.updated_at
-        : new Date().toISOString();
+  const updatedAt = row?.updated_at
+    ? typeof row.updated_at === "string"
+      ? row.updated_at
+      : String(row.updated_at)
+    : new Date().toISOString();
 
   return {
     name: row?.name ?? "",
