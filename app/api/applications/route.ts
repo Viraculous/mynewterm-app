@@ -1,11 +1,18 @@
-import { createApplication, getAllApplications, getApplicationById } from "@/lib/db";
+import {
+  createApplication,
+  createTables,
+  getAllApplications,
+  getApplicationById,
+} from "@/lib/db";
 
 export async function GET() {
-  const apps = getAllApplications();
+  await createTables();
+  const apps = await getAllApplications();
   return Response.json(apps);
 }
 
 export async function POST(request: Request) {
+  await createTables();
   const body = (await request.json().catch(() => null)) as
     | {
         school_name?: unknown;
@@ -26,7 +33,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const id = createApplication({
+  const id = await createApplication({
     school_name: body.school_name,
     role_title: body.role_title,
     job_description: typeof body.job_description === "string" ? body.job_description : null,
@@ -38,7 +45,7 @@ export async function POST(request: Request) {
     date_added: typeof body.date_added === "string" ? body.date_added : null,
   });
 
-  const created = getApplicationById(id);
+  const created = await getApplicationById(id);
   return Response.json(created ?? { id }, { status: 201 });
 }
 

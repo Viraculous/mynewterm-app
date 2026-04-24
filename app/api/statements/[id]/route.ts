@@ -13,7 +13,7 @@ export async function DELETE(
     const numericId = Number(id);
     if (!Number.isFinite(numericId)) return jsonError("Invalid id", 400);
 
-    deleteStatement(numericId);
+    await deleteStatement(numericId);
     return Response.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to delete statement";
@@ -44,7 +44,7 @@ export async function PATCH(
     }
     if (title !== undefined && !title) return jsonError("title cannot be empty", 400);
 
-    updateStatement(numericId, { title, tags });
+    await updateStatement(numericId, { title, tags });
     return Response.json({ ok: true });
   } catch (e) {
     if (e instanceof SyntaxError) return jsonError("Invalid JSON body", 400);

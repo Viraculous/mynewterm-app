@@ -22,7 +22,7 @@ export async function PATCH(
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const existing = getApplicationById(numericId);
+  const existing = await getApplicationById(numericId);
   if (!existing) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
@@ -37,10 +37,10 @@ export async function PATCH(
     );
   }
 
-  if (nextStatus) updateApplicationStatus(numericId, nextStatus);
-  if (nextStatement) updateApplicationStatement(numericId, nextStatement);
+  if (nextStatus) await updateApplicationStatus(numericId, nextStatus);
+  if (nextStatement) await updateApplicationStatement(numericId, nextStatement);
 
-  const updated = getApplicationById(numericId);
+  const updated = await getApplicationById(numericId);
   return Response.json(updated);
 }
 
@@ -54,12 +54,12 @@ export async function DELETE(
     return Response.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  const existing = getApplicationById(numericId);
+  const existing = await getApplicationById(numericId);
   if (!existing) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  deleteApplication(numericId);
+  await deleteApplication(numericId);
   return Response.json({ ok: true });
 }
 

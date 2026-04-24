@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type GenerateResponse =
   | { ok: true; statement: string }
@@ -43,6 +43,24 @@ export default function ApplyPage() {
     if (r) return r;
     return "Saved statement";
   }, [schoolName, roleType]);
+
+  useEffect(() => {
+    const qpSchoolName = new URLSearchParams(window.location.search).get("schoolName")?.trim() || "";
+    if (qpSchoolName && !schoolName.trim()) setSchoolName(qpSchoolName);
+
+    try {
+      const storedName = localStorage.getItem("schoolResearch.schoolName") || "";
+      const storedNotes = localStorage.getItem("schoolResearch.notes") || "";
+      const shouldApplyNotes =
+        storedNotes.trim().length > 0 &&
+        (!qpSchoolName || storedName.trim().toLowerCase() === qpSchoolName.toLowerCase());
+
+      if (shouldApplyNotes && !schoolNotes.trim()) setSchoolNotes(storedNotes);
+    } catch {
+      // ignore localStorage errors (e.g. private mode)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onUploadJobDescription(file: File) {
     setDocumentError(null);

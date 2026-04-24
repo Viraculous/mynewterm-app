@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { db, getProfile, upsertProfile, type Profile } from "@/lib/db";
+import { createTables, getProfile, upsertProfile, type Profile } from "@/lib/db";
 
 function jsonError(message: string, status = 500) {
   return NextResponse.json({ ok: false, error: message }, { status });
@@ -26,9 +26,8 @@ function isProfilePayload(value: unknown): value is Profile {
 
 export async function GET() {
   try {
-    // Ensure DB is initialized and schema exists
-    db();
-    const profile = getProfile();
+    await createTables();
+    const profile = await getProfile();
     return NextResponse.json({ ok: true, profile }, { status: 200 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to fetch profile";
@@ -41,10 +40,9 @@ export async function POST(req: Request) {
     const body = (await req.json()) as unknown;
     if (!isProfilePayload(body)) return jsonError("Invalid profile payload", 400);
 
-    // Ensure DB is initialized and schema exists
-    db();
-    upsertProfile(body);
-    const profile = getProfile();
+    await createTables();
+    await upsertProfile(body);
+    const profile = await getProfile();
 
     return NextResponse.json({ ok: true, profile }, { status: 200 });
   } catch (err) {

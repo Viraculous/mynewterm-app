@@ -59,6 +59,24 @@ function IconPlus() {
   );
 }
 
+function IconSearch() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M16.2 16.2 21 21"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function IconList() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -116,6 +134,7 @@ export default function NavBar() {
   const items: NavItem[] = [
     { href: "/", label: "Dashboard", icon: <IconHome /> },
     { href: "/profile", label: "My Profile", icon: <IconUser /> },
+    { href: "/research", label: "Research", icon: <IconSearch /> },
     { href: "/apply", label: "New Application", icon: <IconPlus /> },
     { href: "/critique", label: "Critique", icon: <IconCritique /> },
     { href: "/library", label: "Library", icon: <IconBookmark /> },

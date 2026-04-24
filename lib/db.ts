@@ -1,5 +1,6 @@
-import Database from "better-sqlite3";
-import path from "node:path";
+import { neon } from "@neondatabase/serverless";
+
+const sql = neon(process.env.DATABASE_URL!);
 
 export type ProfileRow = {
   name: string | null;
@@ -26,13 +27,6 @@ export type Profile = {
   extracurricular: string;
   updated_at?: string;
 };
-
-let _db: Database.Database | null = null;
-
-function getDbPath() {
-  // Keep DB in-repo for local dev; change to a durable volume in production.
-  return path.join(process.cwd(), "data", "app.db");
-}
 
 export type ApplicationRow = {
   id: number;
@@ -84,17 +78,11 @@ export type UpdateStatementInput = {
   tags?: string | null;
 };
 
-export function db() {
-  if (_db) return _db;
-
-  const dbPath = getDbPath();
-  _db = new Database(dbPath);
-  _db.pragma("journal_mode = WAL");
-  _db.pragma("foreign_keys = ON");
-
-  _db.exec(`
+export async function createTables() {
+  await sql`
     CREATE TABLE IF NOT EXISTS profile (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'default' UNIQUE,
       name TEXT,
       email TEXT,
       career_stage TEXT,
@@ -104,13 +92,14 @@ export function db() {
       evidence_bank TEXT,
       safeguarding TEXT,
       extracurricular TEXT,
-      updated_at TEXT NOT NULL
-    );
-  `);
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
 
-  _db.exec(`
+  await sql`
     CREATE TABLE IF NOT EXISTS applications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'default',
       school_name TEXT NOT NULL,
       role_title TEXT NOT NULL,
       job_description TEXT,
@@ -118,226 +107,48 @@ export function db() {
       personal_statement TEXT,
       status TEXT DEFAULT 'Drafting',
       closing_date TEXT,
-      date_added TEXT,
-      updated_at TEXT
-    );
-  `);
+      date_added TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
 
-  _db.exec(`
+  await sql`
     CREATE TABLE IF NOT EXISTS statements (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL DEFAULT 'default',
       title TEXT NOT NULL,
       school_name TEXT,
       role_type TEXT,
       statement_text TEXT NOT NULL,
       word_count INTEGER,
-      date_saved TEXT,
+      date_saved TIMESTAMP DEFAULT NOW(),
       tags TEXT
-    );
-  `);
-
-  // Ensure a single row exists.
-  _db
-    .prepare(
-      `INSERT OR IGNORE INTO profile (id, updated_at) VALUES (1, datetime('now'))`,
     )
-    .run();
-
-  return _db;
+  `;
 }
 
-export function getAllApplications(): ApplicationRow[] {
-  return db()
-    .prepare(
-      `SELECT id, school_name, role_title, job_description, school_notes, personal_statement, status, closing_date, date_added, updated_at
-       FROM applications
-       ORDER BY date_added DESC`,
-    )
-    .all() as ApplicationRow[];
-}
+export async function getProfile(): Promise<Profile & { updated_at: string }> {
+  const rows = (await sql`
+    SELECT
+      name,
+      email,
+      career_stage,
+      subject_specialism,
+      key_stages,
+      teaching_philosophy,
+      evidence_bank,
+      safeguarding,
+      extracurricular,
+      updated_at
+    FROM profile
+    WHERE user_id = 'default'
+    LIMIT 1
+  `) as (ProfileRow & { updated_at: string | Date })[];
 
-export function getApplicationById(id: number): ApplicationRow | undefined {
-  return db()
-    .prepare(
-      `SELECT id, school_name, role_title, job_description, school_notes, personal_statement, status, closing_date, date_added, updated_at
-       FROM applications
-       WHERE id = ?`,
-    )
-    .get(id) as ApplicationRow | undefined;
-}
-
-export function createApplication(data: CreateApplicationInput): number {
-  const nowIso = new Date().toISOString();
-  const result = db()
-    .prepare(
-      `INSERT INTO applications (
-        school_name,
-        role_title,
-        job_description,
-        school_notes,
-        personal_statement,
-        status,
-        closing_date,
-        date_added,
-        updated_at
-      ) VALUES (
-        @school_name,
-        @role_title,
-        @job_description,
-        @school_notes,
-        @personal_statement,
-        COALESCE(@status, 'Drafting'),
-        @closing_date,
-        COALESCE(@date_added, @now),
-        @now
-      )`,
-    )
-    .run({
-      school_name: data.school_name,
-      role_title: data.role_title,
-      job_description: data.job_description ?? null,
-      school_notes: data.school_notes ?? null,
-      personal_statement: data.personal_statement ?? null,
-      status: data.status ?? null,
-      closing_date: data.closing_date ?? null,
-      date_added: data.date_added ?? null,
-      now: nowIso,
-    });
-
-  return Number(result.lastInsertRowid);
-}
-
-export function updateApplicationStatus(id: number, status: string) {
-  db()
-    .prepare(
-      `UPDATE applications
-       SET status = ?, updated_at = ?
-       WHERE id = ?`,
-    )
-    .run(status, new Date().toISOString(), id);
-}
-
-export function updateApplicationStatement(id: number, statement: string) {
-  db()
-    .prepare(
-      `UPDATE applications
-       SET personal_statement = ?, updated_at = ?
-       WHERE id = ?`,
-    )
-    .run(statement, new Date().toISOString(), id);
-}
-
-export function deleteApplication(id: number) {
-  db().prepare(`DELETE FROM applications WHERE id = ?`).run(id);
-}
-
-export function getAllStatements(): StatementRow[] {
-  return db()
-    .prepare(
-      `SELECT id, title, school_name, role_type, statement_text, word_count, date_saved, tags
-       FROM statements
-       ORDER BY date_saved DESC, id DESC`,
-    )
-    .all() as StatementRow[];
-}
-
-export function saveStatement(data: SaveStatementInput): number {
-  const nowIso = new Date().toISOString();
-  const result = db()
-    .prepare(
-      `INSERT INTO statements (
-        title,
-        school_name,
-        role_type,
-        statement_text,
-        word_count,
-        date_saved,
-        tags
-      ) VALUES (
-        @title,
-        @school_name,
-        @role_type,
-        @statement_text,
-        @word_count,
-        COALESCE(@date_saved, @now),
-        @tags
-      )`,
-    )
-    .run({
-      title: data.title,
-      school_name: data.school_name ?? null,
-      role_type: data.role_type ?? null,
-      statement_text: data.statement_text,
-      word_count: data.word_count ?? null,
-      date_saved: data.date_saved ?? null,
-      tags: data.tags ?? null,
-      now: nowIso,
-    });
-
-  return Number(result.lastInsertRowid);
-}
-
-export function deleteStatement(id: number) {
-  db().prepare(`DELETE FROM statements WHERE id = ?`).run(id);
-}
-
-export function updateStatement(id: number, data: UpdateStatementInput) {
-  const setClauses: string[] = [];
-  const params: Record<string, unknown> = { id };
-
-  if (typeof data.title === "string") {
-    setClauses.push("title = @title");
-    params.title = data.title;
-  }
-  if (data.tags === null || typeof data.tags === "string") {
-    setClauses.push("tags = @tags");
-    params.tags = data.tags;
-  }
-
-  if (!setClauses.length) return;
-
-  db()
-    .prepare(
-      `UPDATE statements
-       SET ${setClauses.join(", ")}
-       WHERE id = @id`,
-    )
-    .run(params);
-}
-
-export function getProfileRow(): ProfileRow {
-  const row = db()
-    .prepare(
-      `SELECT name, email, career_stage, subject_specialism, key_stages, teaching_philosophy, evidence_bank, safeguarding, extracurricular, updated_at
-       FROM profile
-       WHERE id = 1`,
-    )
-    .get() as ProfileRow | undefined;
-
-  if (!row) {
-    // Should not happen due to INSERT OR IGNORE above, but keep safe.
-    return {
-      name: null,
-      email: null,
-      career_stage: null,
-      subject_specialism: null,
-      key_stages: null,
-      teaching_philosophy: null,
-      evidence_bank: null,
-      safeguarding: null,
-      extracurricular: null,
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  return row;
-}
-
-export function getProfile(): Profile & { updated_at: string } {
-  const row = getProfileRow();
+  const row = rows[0];
 
   let keyStages: string[] = [];
-  if (row.key_stages) {
+  if (row?.key_stages) {
     try {
       const parsed = JSON.parse(row.key_stages) as unknown;
       if (Array.isArray(parsed)) keyStages = parsed.filter((x) => typeof x === "string");
@@ -346,51 +157,229 @@ export function getProfile(): Profile & { updated_at: string } {
     }
   }
 
+  const updatedAt =
+    row?.updated_at instanceof Date
+      ? row.updated_at.toISOString()
+      : typeof row?.updated_at === "string"
+        ? row.updated_at
+        : new Date().toISOString();
+
   return {
-    name: row.name ?? "",
-    email: row.email ?? "",
-    career_stage: row.career_stage ?? "",
-    subject_specialism: row.subject_specialism ?? "",
+    name: row?.name ?? "",
+    email: row?.email ?? "",
+    career_stage: row?.career_stage ?? "",
+    subject_specialism: row?.subject_specialism ?? "",
     key_stages: keyStages,
-    teaching_philosophy: row.teaching_philosophy ?? "",
-    evidence_bank: row.evidence_bank ?? "",
-    safeguarding: row.safeguarding ?? "",
-    extracurricular: row.extracurricular ?? "",
-    updated_at: row.updated_at,
+    teaching_philosophy: row?.teaching_philosophy ?? "",
+    evidence_bank: row?.evidence_bank ?? "",
+    safeguarding: row?.safeguarding ?? "",
+    extracurricular: row?.extracurricular ?? "",
+    updated_at: updatedAt,
   };
 }
 
-export function upsertProfile(input: Profile) {
+export async function upsertProfile(input: Profile) {
   const keyStagesJson = JSON.stringify(
     (input.key_stages ?? []).filter((x) => typeof x === "string" && x.trim().length > 0),
   );
 
-  db()
-    .prepare(
-      `UPDATE profile
-       SET
-         name = @name,
-         email = @email,
-         career_stage = @career_stage,
-         subject_specialism = @subject_specialism,
-         key_stages = @key_stages,
-         teaching_philosophy = @teaching_philosophy,
-         evidence_bank = @evidence_bank,
-         safeguarding = @safeguarding,
-         extracurricular = @extracurricular,
-         updated_at = datetime('now')
-       WHERE id = 1`,
+  await sql`
+    INSERT INTO profile (
+      user_id,
+      name,
+      email,
+      career_stage,
+      subject_specialism,
+      key_stages,
+      teaching_philosophy,
+      evidence_bank,
+      safeguarding,
+      extracurricular,
+      updated_at
+    ) VALUES (
+      'default',
+      ${input.name ?? ""},
+      ${input.email ?? ""},
+      ${input.career_stage ?? ""},
+      ${input.subject_specialism ?? ""},
+      ${keyStagesJson},
+      ${input.teaching_philosophy ?? ""},
+      ${input.evidence_bank ?? ""},
+      ${input.safeguarding ?? ""},
+      ${input.extracurricular ?? ""},
+      NOW()
     )
-    .run({
-      name: input.name ?? "",
-      email: input.email ?? "",
-      career_stage: input.career_stage ?? "",
-      subject_specialism: input.subject_specialism ?? "",
-      key_stages: keyStagesJson,
-      teaching_philosophy: input.teaching_philosophy ?? "",
-      evidence_bank: input.evidence_bank ?? "",
-      safeguarding: input.safeguarding ?? "",
-      extracurricular: input.extracurricular ?? "",
-    });
+    ON CONFLICT (user_id) DO UPDATE SET
+      name = EXCLUDED.name,
+      email = EXCLUDED.email,
+      career_stage = EXCLUDED.career_stage,
+      subject_specialism = EXCLUDED.subject_specialism,
+      key_stages = EXCLUDED.key_stages,
+      teaching_philosophy = EXCLUDED.teaching_philosophy,
+      evidence_bank = EXCLUDED.evidence_bank,
+      safeguarding = EXCLUDED.safeguarding,
+      extracurricular = EXCLUDED.extracurricular,
+      updated_at = NOW()
+  `;
+}
+
+export async function getAllApplications(): Promise<ApplicationRow[]> {
+  const rows = (await sql`
+    SELECT
+      id,
+      school_name,
+      role_title,
+      job_description,
+      school_notes,
+      personal_statement,
+      status,
+      closing_date,
+      date_added,
+      updated_at
+    FROM applications
+    ORDER BY date_added DESC
+  `) as ApplicationRow[];
+
+  return rows;
+}
+
+export async function getApplicationById(id: number): Promise<ApplicationRow | undefined> {
+  const rows = (await sql`
+    SELECT
+      id,
+      school_name,
+      role_title,
+      job_description,
+      school_notes,
+      personal_statement,
+      status,
+      closing_date,
+      date_added,
+      updated_at
+    FROM applications
+    WHERE id = ${id}
+    LIMIT 1
+  `) as ApplicationRow[];
+
+  return rows[0];
+}
+
+export async function createApplication(data: CreateApplicationInput): Promise<number> {
+  const rows = (await sql`
+    INSERT INTO applications (
+      user_id,
+      school_name,
+      role_title,
+      job_description,
+      school_notes,
+      personal_statement,
+      status,
+      closing_date,
+      date_added,
+      updated_at
+    ) VALUES (
+      'default',
+      ${data.school_name},
+      ${data.role_title},
+      ${data.job_description ?? null},
+      ${data.school_notes ?? null},
+      ${data.personal_statement ?? null},
+      ${data.status ?? "Drafting"},
+      ${data.closing_date ?? null},
+      COALESCE(${data.date_added ?? null}::timestamp, NOW()),
+      NOW()
+    )
+    RETURNING id
+  `) as { id: number }[];
+
+  return rows[0]?.id ?? 0;
+}
+
+export async function updateApplicationStatus(id: number, status: string) {
+  await sql`
+    UPDATE applications
+    SET status = ${status}, updated_at = NOW()
+    WHERE id = ${id}
+  `;
+}
+
+export async function updateApplicationStatement(id: number, statement: string) {
+  await sql`
+    UPDATE applications
+    SET personal_statement = ${statement}, updated_at = NOW()
+    WHERE id = ${id}
+  `;
+}
+
+export async function deleteApplication(id: number) {
+  await sql`DELETE FROM applications WHERE id = ${id}`;
+}
+
+export async function getAllStatements(): Promise<StatementRow[]> {
+  const rows = (await sql`
+    SELECT
+      id,
+      title,
+      school_name,
+      role_type,
+      statement_text,
+      word_count,
+      date_saved,
+      tags
+    FROM statements
+    ORDER BY date_saved DESC
+  `) as StatementRow[];
+
+  return rows;
+}
+
+export async function saveStatement(data: SaveStatementInput): Promise<number> {
+  const rows = (await sql`
+    INSERT INTO statements (
+      user_id,
+      title,
+      school_name,
+      role_type,
+      statement_text,
+      word_count,
+      date_saved,
+      tags
+    ) VALUES (
+      'default',
+      ${data.title},
+      ${data.school_name ?? null},
+      ${data.role_type ?? null},
+      ${data.statement_text},
+      ${data.word_count ?? null},
+      COALESCE(${data.date_saved ?? null}::timestamp, NOW()),
+      ${data.tags ?? null}
+    )
+    RETURNING id
+  `) as { id: number }[];
+
+  return rows[0]?.id ?? 0;
+}
+
+export async function deleteStatement(id: number) {
+  await sql`DELETE FROM statements WHERE id = ${id}`;
+}
+
+export async function updateStatement(id: number, data: UpdateStatementInput) {
+  const title = typeof data.title === "string" ? data.title : undefined;
+  const tags = data.tags === null || typeof data.tags === "string" ? data.tags : undefined;
+
+  if (title === undefined && tags === undefined) return;
+
+  if (title !== undefined && tags !== undefined) {
+    await sql`UPDATE statements SET title = ${title}, tags = ${tags} WHERE id = ${id}`;
+    return;
+  }
+
+  if (title !== undefined) {
+    await sql`UPDATE statements SET title = ${title} WHERE id = ${id}`;
+  }
+  if (tags !== undefined) {
+    await sql`UPDATE statements SET tags = ${tags} WHERE id = ${id}`;
+  }
 }
 

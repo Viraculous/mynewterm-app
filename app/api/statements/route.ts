@@ -1,4 +1,4 @@
-import { getAllStatements, saveStatement } from "@/lib/db";
+import { createTables, getAllStatements, saveStatement } from "@/lib/db";
 
 function jsonError(message: string, status = 500) {
   return Response.json({ ok: false, error: message }, { status });
@@ -6,7 +6,8 @@ function jsonError(message: string, status = 500) {
 
 export async function GET() {
   try {
-    const statements = getAllStatements();
+    await createTables();
+    const statements = await getAllStatements();
     return Response.json({ ok: true, statements });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to load statements";
@@ -16,6 +17,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    await createTables();
     const body = (await request.json().catch(() => null)) as
       | {
           title?: unknown;
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
       return jsonError("statement_text is required", 400);
     }
 
-    const id = saveStatement({
+    const id = await saveStatement({
       title: body.title.trim(),
       school_name: typeof body.school_name === "string" ? body.school_name.trim() : null,
       role_type: typeof body.role_type === "string" ? body.role_type.trim() : null,

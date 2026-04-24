@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import OpenAI from "openai";
 
-import { db, getProfile } from "@/lib/db";
+import { createTables, getProfile } from "@/lib/db";
 
 function jsonError(message: string, status = 500) {
   return NextResponse.json({ ok: false, error: message }, { status });
@@ -26,7 +26,7 @@ function isGeneratePayload(value: unknown): value is GeneratePayload {
   );
 }
 
-function formatProfileForPrompt(profile: ReturnType<typeof getProfile>) {
+function formatProfileForPrompt(profile: Awaited<ReturnType<typeof getProfile>>) {
   return [
     `Name: ${profile.name || "(not provided)"}`,
     `Email: ${profile.email || "(not provided)"}`,
@@ -60,9 +60,8 @@ export async function POST(req: Request) {
 
     const { schoolName, jobDescription, schoolNotes } = body;
 
-    // Ensure DB is initialized and schema exists
-    db();
-    const profile = getProfile();
+    await createTables();
+    const profile = await getProfile();
 
     const client = new OpenAI({
       apiKey,
