@@ -24,7 +24,13 @@ export async function POST(request: NextRequest) {
     let text = "";
 
     if (fileName.endsWith(".pdf")) {
-      const pdfParse = (await import("pdf-parse")).default;
+      // pdf-parse is CommonJS (module.exports = fn); dynamic import().default
+      // is not declared in its type definitions. Use require() with an explicit
+      // signature so the call site stays type-safe.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require("pdf-parse") as (
+        buffer: Buffer
+      ) => Promise<{ text: string }>;
       const data = await pdfParse(buffer);
       text = data.text ?? "";
     } else if (fileName.endsWith(".docx")) {
