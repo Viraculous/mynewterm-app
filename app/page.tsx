@@ -217,7 +217,13 @@ export default function DashboardHomePage() {
           </div>
         ) : null}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 12,
+          }}
+        >
           <StatCard label="Total Applications" value={stats.total} />
           <StatCard label="Interviews" value={stats.interviews} />
           <StatCard label="Closing This Week" value={stats.closingThisWeek} />
