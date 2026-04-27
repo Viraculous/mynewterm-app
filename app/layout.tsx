@@ -30,7 +30,10 @@ export default function RootLayout({
     >
       <body className="min-h-full">
         <NavBar />
-        <div className="min-h-screen" style={{ marginLeft: 220, background: "#0A0F1E" }}>
+        <div
+          className="min-h-screen ml-0 pt-12 md:ml-[220px] md:pt-0"
+          style={{ background: "#0A0F1E" }}
+        >
           {children}
         </div>
       </body>
