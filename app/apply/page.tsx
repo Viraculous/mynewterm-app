@@ -1,12 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  TermShell,
+  TermPanel,
+  TermButton,
+  TermInput,
+  TermTextarea,
+  TermModal,
+} from "@/components/term";
 
 type GenerateResponse =
   | { ok: true; statement: string }
   | { ok: false; error: string };
 
-type ParseDocumentResponse = { ok: true; text: string } | { ok: false; error: string };
+type ParseDocumentResponse =
+  | { ok: true; text: string }
+  | { ok: false; error: string };
 
 function countWords(text: string) {
   const cleaned = text.trim();
@@ -45,7 +55,8 @@ export default function ApplyPage() {
   }, [schoolName, roleType]);
 
   useEffect(() => {
-    const qpSchoolName = new URLSearchParams(window.location.search).get("schoolName")?.trim() || "";
+    const qpSchoolName =
+      new URLSearchParams(window.location.search).get("schoolName")?.trim() || "";
     if (qpSchoolName && !schoolName.trim()) setSchoolName(qpSchoolName);
 
     try {
@@ -53,7 +64,8 @@ export default function ApplyPage() {
       const storedNotes = localStorage.getItem("schoolResearch.notes") || "";
       const shouldApplyNotes =
         storedNotes.trim().length > 0 &&
-        (!qpSchoolName || storedName.trim().toLowerCase() === qpSchoolName.toLowerCase());
+        (!qpSchoolName ||
+          storedName.trim().toLowerCase() === qpSchoolName.toLowerCase());
 
       if (shouldApplyNotes && !schoolNotes.trim()) setSchoolNotes(storedNotes);
     } catch {
@@ -84,9 +96,12 @@ export default function ApplyPage() {
       }
 
       setJobDescription(data.text);
-      setDocumentStatus(`Document loaded — ${countWords(data.text)} words extracted`);
+      setDocumentStatus(
+        `Document loaded — ${countWords(data.text)} words extracted`,
+      );
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Network error while reading document.";
+      const msg =
+        e instanceof Error ? e.message : "Network error while reading document.";
       setDocumentError(msg);
     } finally {
       setIsParsingDocument(false);
@@ -124,7 +139,8 @@ export default function ApplyPage() {
 
       setStatement(data.statement);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Network error while generating.";
+      const msg =
+        e instanceof Error ? e.message : "Network error while generating.";
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -172,7 +188,10 @@ export default function ApplyPage() {
         | { ok: false; error: string }
         | null;
       if (!res.ok || !data || data.ok !== true) {
-        const msg = data && "error" in data && typeof data.error === "string" ? data.error : "Save failed.";
+        const msg =
+          data && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Save failed.";
         setError(msg);
         return;
       }
@@ -189,46 +208,50 @@ export default function ApplyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0F1E] text-slate-100">
-      <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Personal Statement Generator</h1>
-          <p className="mt-2 text-sm text-slate-300">
-            Paste the vacancy details and generate a tailored UK science teacher personal statement.
-          </p>
+    <TermShell prompt="./apply">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">
+          <span className="text-[var(--term-lime)]">{">"}</span> personal statement generator
+        </h1>
+        <div className="mt-1 text-sm text-[var(--term-text-muted)]">
+          // paste vacancy details and generate a tailored UK science teacher statement
         </div>
+      </div>
 
-        <div className="space-y-5 rounded-2xl border border-slate-800 bg-slate-950/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-200">
-              School Name <span className="text-rose-400">*</span>
-            </label>
-            <input
-              value={schoolName}
-              onChange={(e) => setSchoolName(e.target.value)}
-              required
-              className="w-full rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none ring-0 transition focus:border-slate-600"
-              placeholder="e.g. St Mary’s Academy"
-            />
-          </div>
+      <TermPanel title="vacancy::input">
+        <div className="space-y-5">
+          <TermInput
+            id="schoolName"
+            label={<>School Name <span className="text-red-400">*</span></>}
+            value={schoolName}
+            onChange={(e) => setSchoolName(e.target.value)}
+            required
+            placeholder="e.g. St Mary's Academy"
+          />
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-200">
-              Role Type <span className="text-slate-500">(optional)</span>
-            </label>
-            <input
-              value={roleType}
-              onChange={(e) => setRoleType(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none ring-0 transition focus:border-slate-600"
-              placeholder="e.g. Teacher of Biology (KS3/KS4)"
-            />
-          </div>
+          <TermInput
+            id="roleType"
+            label="Role Type"
+            hint="optional"
+            value={roleType}
+            onChange={(e) => setRoleType(e.target.value)}
+            placeholder="e.g. Teacher of Biology (KS3/KS4)"
+          />
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-200">
-              Upload Job Description <span className="text-slate-500">(optional)</span>
-            </label>
+            <div className="mb-1.5 flex items-baseline justify-between gap-3">
+              <label
+                htmlFor="jdFile"
+                className="text-[11px] uppercase tracking-[0.18em] text-[var(--term-text-comment)]"
+              >
+                // upload job description
+              </label>
+              <span className="text-[11px] text-[var(--term-text-muted)]">
+                optional · pdf · docx · txt
+              </span>
+            </div>
             <input
+              id="jdFile"
               type="file"
               accept=".pdf,.docx,.txt"
               disabled={isParsingDocument}
@@ -237,82 +260,83 @@ export default function ApplyPage() {
                 if (!file) return;
                 void onUploadJobDescription(file);
               }}
-              className="block w-full cursor-pointer rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm text-slate-200 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-slate-100 hover:file:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="block w-full cursor-pointer border border-[var(--term-border)] bg-black/40 px-3 py-2 text-sm text-[var(--term-text)] transition-colors file:mr-3 file:border-0 file:border-r file:border-[var(--term-border)] file:bg-cyan-400/10 file:px-3 file:py-2 file:text-xs file:font-bold file:uppercase file:tracking-[0.18em] file:text-cyan-300 hover:border-[var(--term-border-strong)] hover:file:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-60"
             />
-
             {isParsingDocument ? (
-              <p className="mt-2 text-sm text-slate-300">Reading document...</p>
+              <p className="mt-2 text-xs text-[var(--term-text-muted)]">
+                // reading document…
+              </p>
             ) : null}
-            {documentStatus ? <p className="mt-2 text-sm text-emerald-400">{documentStatus}</p> : null}
-            {documentError ? <p className="mt-2 text-sm text-rose-400">{documentError}</p> : null}
+            {documentStatus ? (
+              <p className="mt-2 text-xs text-[var(--term-lime)]">
+                // {documentStatus}
+              </p>
+            ) : null}
+            {documentError ? (
+              <p className="mt-2 text-xs text-red-300">// {documentError}</p>
+            ) : null}
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-200">
-              Job Description <span className="text-rose-400">*</span>
-            </label>
-            <textarea
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              required
-              rows={10}
-              className="w-full resize-y rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-slate-600"
-              placeholder="Paste the full job description from MyNewTerm here"
-            />
-          </div>
+          <TermTextarea
+            id="jobDescription"
+            label={<>Job Description <span className="text-red-400">*</span></>}
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+            required
+            rows={10}
+            placeholder="Paste the full job description from MyNewTerm here"
+          />
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-200">
-              School Research Notes <span className="text-slate-500">(optional)</span>
-            </label>
-            <textarea
-              value={schoolNotes}
-              onChange={(e) => setSchoolNotes(e.target.value)}
-              rows={5}
-              className="w-full resize-y rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-slate-600"
-              placeholder="Ofsted grade, recent results, school ethos, anything relevant"
-            />
-          </div>
+          <TermTextarea
+            id="schoolNotes"
+            label="School Research Notes"
+            hint="optional"
+            value={schoolNotes}
+            onChange={(e) => setSchoolNotes(e.target.value)}
+            rows={5}
+            placeholder="Ofsted grade, recent results, school ethos, anything relevant"
+          />
 
-          {saveSuccess ? <p className="text-sm text-emerald-400">Saved to library</p> : null}
-          {error ? <p className="text-sm text-rose-400">{error}</p> : null}
+          {saveSuccess ? (
+            <p className="text-xs text-[var(--term-lime)]">// saved to library</p>
+          ) : null}
+          {error ? (
+            <p className="text-xs text-red-300">// error: {error}</p>
+          ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
+            <TermButton
+              variant="primary"
               onClick={onGenerate}
               disabled={isLoading}
-              className="inline-flex items-center justify-center rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isLoading ? "Drafting your statement..." : "Generate Personal Statement"}
-            </button>
+              {isLoading ? "[ drafting… ]" : "[+] generate statement"}
+            </TermButton>
 
             {statement ? (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button
-                  type="button"
-                  onClick={onCopy}
-                  className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/40 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-slate-500"
-                >
-                  {copied ? "Copied" : "Copy to Clipboard"}
-                </button>
-                <button
-                  type="button"
-                  onClick={openSaveModal}
-                  className="inline-flex items-center justify-center rounded-xl border border-emerald-700/60 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-200 transition hover:border-emerald-500/80 hover:bg-emerald-500/15"
-                >
-                  Save to Library
-                </button>
+                <TermButton variant="secondary" onClick={onCopy}>
+                  {copied ? "[ copied ]" : "[ copy ]"}
+                </TermButton>
+                <TermButton variant="primary" onClick={openSaveModal}>
+                  [ save to library ]
+                </TermButton>
               </div>
             ) : null}
           </div>
         </div>
+      </TermPanel>
 
-        {statement ? (
-          <div className="mt-8 space-y-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-            <div className="flex items-end justify-between gap-4">
-              <h2 className="text-base font-semibold text-slate-200">Generated statement</h2>
-              <div className="text-sm text-slate-400">{wordCount} words</div>
+      {statement ? (
+        <div className="mt-6">
+          <TermPanel title="generated::statement">
+            <div className="mb-3 flex items-end justify-between gap-4">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--term-text-comment)]">
+                // edit freely before copying
+              </div>
+              <div className="text-xs text-[var(--term-text-muted)]">
+                {wordCount} words
+              </div>
             </div>
 
             <textarea
@@ -322,70 +346,56 @@ export default function ApplyPage() {
                 setCopied(false);
               }}
               rows={14}
-              className="w-full resize-y rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 outline-none transition focus:border-slate-600"
+              className="w-full resize-y border border-[var(--term-border)] bg-black/40 px-3 py-3 text-sm leading-relaxed text-white outline-none transition-colors focus:border-[var(--term-border-focus)]"
             />
 
-            <div className="text-xs text-slate-500">
-              Tip: Aim for 400–500 words. You can edit the draft freely before copying.
+            <div className="mt-2 text-[11px] text-[var(--term-text-muted)]">
+              // tip: aim for 400–500 words
             </div>
-          </div>
-        ) : null}
-      </div>
-
-      {isSaveModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-[#0B1222] p-5 shadow-xl">
-            <div className="mb-4">
-              <div className="text-base font-semibold text-slate-100">Save statement to library</div>
-              <div className="mt-1 text-sm text-slate-400">Give it a title and optional tags.</div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-200">Title</label>
-                <input
-                  value={saveTitle}
-                  onChange={(e) => setSaveTitle(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-slate-600"
-                  placeholder={defaultTitle}
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-200">
-                  Tags <span className="text-slate-500">(comma separated)</span>
-                </label>
-                <input
-                  value={saveTags}
-                  onChange={(e) => setSaveTags(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-slate-600"
-                  placeholder='e.g. "KS4, Biology, Outstanding school"'
-                />
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setIsSaveModalOpen(false)}
-                disabled={isSaving}
-                className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/40 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void onSaveToLibrary()}
-                disabled={isSaving}
-                className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSaving ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
+          </TermPanel>
         </div>
       ) : null}
-    </div>
+
+      <TermModal
+        open={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        title="save statement"
+      >
+        <div className="space-y-4">
+          <TermInput
+            id="saveTitle"
+            label="Title"
+            value={saveTitle}
+            onChange={(e) => setSaveTitle(e.target.value)}
+            placeholder={defaultTitle}
+          />
+          <TermInput
+            id="saveTags"
+            label="Tags"
+            hint="comma separated"
+            value={saveTags}
+            onChange={(e) => setSaveTags(e.target.value)}
+            placeholder='e.g. "KS4, Biology, Outstanding school"'
+          />
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <TermButton
+            variant="secondary"
+            onClick={() => setIsSaveModalOpen(false)}
+            disabled={isSaving}
+          >
+            [ cancel ]
+          </TermButton>
+          <TermButton
+            variant="primary"
+            onClick={() => void onSaveToLibrary()}
+            disabled={isSaving}
+          >
+            {isSaving ? "[ saving… ]" : "[ save ]"}
+          </TermButton>
+        </div>
+      </TermModal>
+    </TermShell>
   );
 }
-
