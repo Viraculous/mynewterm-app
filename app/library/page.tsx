@@ -2,6 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import {
+  TermShell,
+  TermPanel,
+  TermInput,
+  TermButton,
+} from "@/components/term";
 
 type StatementRow = {
   id: number;
@@ -22,7 +28,11 @@ function formatDate(iso: string | null) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
 }
 
 function parseTags(tags: string | null) {
@@ -32,19 +42,6 @@ function parseTags(tags: string | null) {
     .map((t) => t.trim())
     .filter(Boolean)
     .slice(0, 12);
-}
-
-function tagColor(tag: string) {
-  const colors = [
-    "bg-sky-500/15 text-sky-200 border-sky-500/25",
-    "bg-emerald-500/15 text-emerald-200 border-emerald-500/25",
-    "bg-violet-500/15 text-violet-200 border-violet-500/25",
-    "bg-amber-500/15 text-amber-200 border-amber-500/25",
-    "bg-rose-500/15 text-rose-200 border-rose-500/25",
-  ];
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) >>> 0;
-  return colors[hash % colors.length];
 }
 
 export default function LibraryPage() {
@@ -85,11 +82,7 @@ export default function LibraryPage() {
     const q = query.trim().toLowerCase();
     if (!q) return statements;
     return statements.filter((s) => {
-      const hay = [
-        s.title,
-        s.school_name ?? "",
-        s.tags ?? "",
-      ]
+      const hay = [s.title, s.school_name ?? "", s.tags ?? ""]
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
@@ -107,7 +100,9 @@ export default function LibraryPage() {
   }
 
   async function onDelete(id: number) {
-    const ok = window.confirm("Delete this saved statement? This cannot be undone.");
+    const ok = window.confirm(
+      "Delete this saved statement? This cannot be undone.",
+    );
     if (!ok) return;
 
     setError(null);
@@ -116,9 +111,12 @@ export default function LibraryPage() {
 
     try {
       const res = await fetch(`/api/statements/${id}`, { method: "DELETE" });
-      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
       if (!res.ok || !data || data.ok !== true) {
-        const msg = data && typeof data.error === "string" ? data.error : "Delete failed.";
+        const msg =
+          data && typeof data.error === "string" ? data.error : "Delete failed.";
         throw new Error(msg);
       }
     } catch (e) {
@@ -129,117 +127,117 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0F1E] text-slate-100">
-      <div className="mx-auto w-full max-w-5xl px-4 py-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Statement Library</h1>
-            <p className="mt-2 text-sm text-slate-300">Your saved personal statements</p>
+    <TermShell prompt="./library">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">
+            <span className="text-[var(--term-lime)]">{">"}</span> library
+          </h1>
+          <div className="mt-1 text-sm text-[var(--term-text-muted)]">
+            // your saved personal statements
           </div>
-
-          <Link
-            href="/apply"
-            className="inline-flex items-center justify-center rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-400"
-          >
-            Generate New Statement
-          </Link>
         </div>
+        <Link href="/apply">
+          <TermButton variant="primary">[+] generate new</TermButton>
+        </Link>
+      </div>
 
-        <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-slate-600"
-            placeholder="Search by title, school name, or tags..."
-          />
+      <div className="mt-6">
+        <TermInput
+          id="librarySearch"
+          label="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by title, school name, or tags…"
+        />
+      </div>
+
+      {error ? (
+        <p className="mt-4 text-xs text-red-300">// error: {error}</p>
+      ) : null}
+
+      {isLoading ? (
+        <div className="mt-8 text-sm text-[var(--term-text-muted)]">
+          // loading statements…
         </div>
-
-        {error ? <p className="mt-4 text-sm text-rose-400">{error}</p> : null}
-
-        {isLoading ? (
-          <div className="mt-8 text-sm text-slate-300">Loading statements...</div>
-        ) : filtered.length === 0 ? (
-          <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-950/40 p-6 text-sm text-slate-300">
-            No statements saved yet
-          </div>
-        ) : (
-          <div className="mt-8 grid grid-cols-1 gap-4">
-            {filtered.map((s) => {
-              const isExpanded = !!expanded[s.id];
-              const tags = parseTags(s.tags);
-              return (
-                <div
-                  key={s.id}
-                  className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="text-base font-semibold text-slate-100">{s.title}</div>
-                      <div className="mt-1 text-sm text-slate-400">
-                        {(s.school_name || "—") + " · " + (s.role_type || "—")}
-                      </div>
+      ) : filtered.length === 0 ? (
+        <div className="mt-8">
+          <TermPanel>
+            <div className="text-sm text-[var(--term-text-muted)]">
+              // no statements saved yet
+            </div>
+          </TermPanel>
+        </div>
+      ) : (
+        <div className="mt-8 grid grid-cols-1 gap-4">
+          {filtered.map((s) => {
+            const isExpanded = !!expanded[s.id];
+            const tags = parseTags(s.tags);
+            return (
+              <TermPanel key={s.id}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-base font-bold text-white">
+                      {s.title}
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-slate-700 bg-slate-900/40 px-3 py-1 text-xs font-semibold text-slate-200">
-                        {(s.word_count ?? 0).toLocaleString()} words
-                      </span>
-                      <span className="text-xs text-slate-400">{formatDate(s.date_saved)}</span>
+                    <div className="mt-1 text-xs text-[var(--term-text-muted)]">
+                      {(s.school_name || "—") + " · " + (s.role_type || "—")}
                     </div>
                   </div>
 
-                  {tags.length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {tags.map((t) => (
-                        <span
-                          key={t}
-                          className={[
-                            "rounded-full border px-2.5 py-1 text-xs font-semibold",
-                            tagColor(t),
-                          ].join(" ")}
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {isExpanded ? (
-                    <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/30 p-4 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
-                      {s.statement_text}
-                    </div>
-                  ) : null}
-
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <button
-                      type="button"
-                      onClick={() => setExpanded((m) => ({ ...m, [s.id]: !m[s.id] }))}
-                      className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/40 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-slate-500"
-                    >
-                      {isExpanded ? "Hide" : "View"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void onCopy(s.id, s.statement_text)}
-                      className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/40 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-slate-500"
-                    >
-                      {copiedId === s.id ? "Copied" : "Copy"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void onDelete(s.id)}
-                      className="inline-flex items-center justify-center rounded-xl border border-rose-700/60 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-200 transition hover:border-rose-500/80 hover:bg-rose-500/15"
-                    >
-                      Delete
-                    </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="border border-[var(--term-border)] bg-black/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--term-lime)]">
+                      [ {(s.word_count ?? 0).toLocaleString()} words ]
+                    </span>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--term-text-muted)]">
+                      {formatDate(s.date_saved)}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+
+                {tags.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {tags.map((t) => (
+                      <span
+                        key={t}
+                        className="border border-cyan-400/25 bg-cyan-400/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-200"
+                      >
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {isExpanded ? (
+                  <div className="mt-4 border border-[var(--term-border)] bg-black/40 p-3 text-[13px] leading-relaxed whitespace-pre-wrap text-[var(--term-text)]">
+                    {s.statement_text}
+                  </div>
+                ) : null}
+
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <TermButton
+                    variant="secondary"
+                    onClick={() =>
+                      setExpanded((m) => ({ ...m, [s.id]: !m[s.id] }))
+                    }
+                  >
+                    {isExpanded ? "[ hide ]" : "[ view ]"}
+                  </TermButton>
+                  <TermButton
+                    variant="secondary"
+                    onClick={() => void onCopy(s.id, s.statement_text)}
+                  >
+                    {copiedId === s.id ? "[ copied ]" : "[ copy ]"}
+                  </TermButton>
+                  <TermButton variant="danger" onClick={() => void onDelete(s.id)}>
+                    [ delete ]
+                  </TermButton>
+                </div>
+              </TermPanel>
+            );
+          })}
+        </div>
+      )}
+    </TermShell>
   );
 }
-

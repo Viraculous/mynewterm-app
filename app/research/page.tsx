@@ -2,10 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  TermShell,
+  TermPanel,
+  TermInput,
+  TermButton,
+} from "@/components/term";
 
-type SchoolResearchResponse = { ok: true; research: string } | { ok: false; error: string };
+type SchoolResearchResponse =
+  | { ok: true; research: string }
+  | { ok: false; error: string };
 type OfstedResponse =
-  | { ok: true; data: { rating?: string; source?: string; query?: string } & Record<string, unknown> }
+  | {
+      ok: true;
+      data: { rating?: string; source?: string; query?: string } & Record<
+        string,
+        unknown
+      >;
+    }
   | { ok: false; error: string };
 
 type ResearchJson = {
@@ -25,18 +39,19 @@ type ResearchJson = {
   verificationNotes?: string[];
 };
 
-function classNames(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
-
-function ratingColor(rating: string) {
+function ratingTag(rating: string): { tag: string; color: string } {
   const r = rating.toLowerCase();
-  if (r.includes("outstanding")) return "bg-emerald-500/15 text-emerald-200 border-emerald-500/30";
-  if (r === "good" || r.includes(" good")) return "bg-sky-500/15 text-sky-200 border-sky-500/30";
-  if (r.includes("requires improvement")) return "bg-yellow-500/15 text-yellow-200 border-yellow-500/30";
-  if (r.includes("inadequate")) return "bg-rose-500/15 text-rose-200 border-rose-500/30";
-  if (r.includes("not yet inspected")) return "bg-slate-500/15 text-slate-200 border-slate-500/30";
-  return "bg-slate-500/10 text-slate-200 border-slate-500/20";
+  if (r.includes("outstanding"))
+    return { tag: "[ OUTSTANDING ]", color: "var(--term-lime)" };
+  if (r === "good" || r.includes(" good"))
+    return { tag: "[ GOOD        ]", color: "var(--term-cyan)" };
+  if (r.includes("requires improvement"))
+    return { tag: "[ REQ. IMPROV ]", color: "var(--term-amber)" };
+  if (r.includes("inadequate"))
+    return { tag: "[ INADEQUATE  ]", color: "var(--term-red)" };
+  if (r.includes("not yet inspected"))
+    return { tag: "[ NOT INSPECT ]", color: "var(--term-text-muted)" };
+  return { tag: `[ ${rating.toUpperCase().slice(0, 11).padEnd(11)} ]`, color: "var(--term-text-muted)" };
 }
 
 function toNotesString(r: ResearchJson) {
@@ -47,27 +62,35 @@ function toNotesString(r: ResearchJson) {
     lines.push("Overview:");
     if (r.overview.schoolType) lines.push(`- Type: ${r.overview.schoolType}`);
     if (r.overview.ageRange) lines.push(`- Age range: ${r.overview.ageRange}`);
-    if (r.overview.approxSize) lines.push(`- Approx size: ${r.overview.approxSize}`);
-    if (r.overview.specialisms?.length) lines.push(`- Specialisms: ${r.overview.specialisms.join(", ")}`);
-    if (r.overview.notableStrengths?.length) lines.push(`- Strengths: ${r.overview.notableStrengths.join("; ")}`);
+    if (r.overview.approxSize)
+      lines.push(`- Approx size: ${r.overview.approxSize}`);
+    if (r.overview.specialisms?.length)
+      lines.push(`- Specialisms: ${r.overview.specialisms.join(", ")}`);
+    if (r.overview.notableStrengths?.length)
+      lines.push(`- Strengths: ${r.overview.notableStrengths.join("; ")}`);
     lines.push("");
   }
   if (r.ofsted) {
     lines.push("Ofsted (verify):");
     if (r.ofsted.rating) lines.push(`- Rating: ${r.ofsted.rating}`);
-    if (r.ofsted.keyFindings?.length) lines.push(`- Key findings: ${r.ofsted.keyFindings.join("; ")}`);
+    if (r.ofsted.keyFindings?.length)
+      lines.push(`- Key findings: ${r.ofsted.keyFindings.join("; ")}`);
     lines.push("");
   }
   if (r.scienceDepartment) {
     lines.push("Science department (verify):");
-    if (r.scienceDepartment.reputation) lines.push(`- Reputation: ${r.scienceDepartment.reputation}`);
-    if (r.scienceDepartment.notes?.length) lines.push(`- Notes: ${r.scienceDepartment.notes.join("; ")}`);
+    if (r.scienceDepartment.reputation)
+      lines.push(`- Reputation: ${r.scienceDepartment.reputation}`);
+    if (r.scienceDepartment.notes?.length)
+      lines.push(`- Notes: ${r.scienceDepartment.notes.join("; ")}`);
     lines.push("");
   }
   if (r.communityContext) {
     lines.push("Community context:");
-    if (r.communityContext.intake) lines.push(`- Intake: ${r.communityContext.intake}`);
-    if (r.communityContext.contextNotes?.length) lines.push(`- Notes: ${r.communityContext.contextNotes.join("; ")}`);
+    if (r.communityContext.intake)
+      lines.push(`- Intake: ${r.communityContext.intake}`);
+    if (r.communityContext.contextNotes?.length)
+      lines.push(`- Notes: ${r.communityContext.contextNotes.join("; ")}`);
     lines.push("");
   }
   if (r.recentNews?.length) {
@@ -100,7 +123,9 @@ export default function ResearchPage() {
   const effectiveRating = useMemo(() => {
     const fromAI = research?.ofsted?.rating?.trim();
     const fromOfsted =
-      ofsted && ofsted.ok && typeof ofsted.data.rating === "string" ? ofsted.data.rating.trim() : "";
+      ofsted && ofsted.ok && typeof ofsted.data.rating === "string"
+        ? ofsted.data.rating.trim()
+        : "";
     const aiLooksUseful = fromAI && fromAI.toLowerCase() !== "unknown";
     const extLooksUseful = fromOfsted && fromOfsted.toLowerCase() !== "unknown";
     if (extLooksUseful) return fromOfsted;
@@ -144,13 +169,20 @@ export default function ResearchPage() {
       setRawResearch(researchData.research);
       try {
         const parsed = JSON.parse(researchData.research) as ResearchJson;
-        if (parsed && typeof parsed === "object" && typeof parsed.schoolName === "string") setResearch(parsed);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          typeof parsed.schoolName === "string"
+        )
+          setResearch(parsed);
       } catch {
         // fall back to raw string
       }
 
       if (ofstedRes) {
-        const ofstedData = (await ofstedRes.json().catch(() => null)) as OfstedResponse | null;
+        const ofstedData = (await ofstedRes.json().catch(() => null)) as
+          | OfstedResponse
+          | null;
         if (ofstedData) setOfsted(ofstedData);
       }
     } catch (e) {
@@ -168,7 +200,9 @@ export default function ResearchPage() {
       research ??
       ({
         schoolName: schoolName.trim(),
-        verificationNotes: ["Research output could not be parsed as JSON. Verify details manually."],
+        verificationNotes: [
+          "Research output could not be parsed as JSON. Verify details manually.",
+        ],
         talkingPoints: [],
       } satisfies ResearchJson);
 
@@ -181,184 +215,215 @@ export default function ResearchPage() {
     router.push(`/apply?schoolName=${encodeURIComponent(r.schoolName)}`);
   }
 
-  return (
-    <div className="min-h-screen bg-[#0A0F1E] text-slate-100">
-      <div className="mx-auto w-full max-w-4xl px-4 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">School Research</h1>
-          <p className="mt-2 text-sm text-slate-300">Research a school before applying</p>
-        </div>
+  const ratingDisplay = ratingTag(effectiveRating || "Unknown");
 
-        <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-950/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
+  return (
+    <TermShell prompt="./research">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">
+          <span className="text-[var(--term-lime)]">{">"}</span> school research
+        </h1>
+        <div className="mt-1 text-sm text-[var(--term-text-muted)]">
+          // research a school before applying
+        </div>
+      </div>
+
+      <TermPanel>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <TermInput
+              id="researchSchool"
+              label="school name"
               value={schoolName}
               onChange={(e) => setSchoolName(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-slate-100 placeholder:text-slate-500 outline-none ring-0 transition focus:border-slate-600"
-              placeholder="Enter school name e.g. Greenfield Academy, Leeds"
+              placeholder="e.g. Greenfield Academy, Leeds"
               onKeyDown={(e) => {
                 if (e.key === "Enter") void onSearch();
               }}
             />
-            <button
-              type="button"
-              onClick={() => void onSearch()}
-              disabled={isLoading}
-              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isLoading ? "Researching school..." : "Search"}
-            </button>
           </div>
-
-          {error ? <p className="mt-3 text-sm text-rose-400">{error}</p> : null}
+          <TermButton
+            variant="primary"
+            onClick={() => void onSearch()}
+            disabled={isLoading}
+          >
+            {isLoading ? "[ searching… ]" : "[ search ]"}
+          </TermButton>
         </div>
+        {error ? (
+          <p className="mt-3 text-xs text-red-300">// error: {error}</p>
+        ) : null}
+      </TermPanel>
 
-        {isLoading ? <p className="text-sm text-slate-300">Researching school...</p> : null}
+      {isLoading ? (
+        <p className="mt-4 text-sm text-[var(--term-text-muted)]">
+          // researching school…
+        </p>
+      ) : null}
 
-        {research ? (
-          <div className="space-y-5">
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-base font-semibold text-slate-200">School Overview</h2>
-                <div className="text-xs text-slate-500">{research.schoolName}</div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4">
-                  <div className="text-xs text-slate-400">School type</div>
-                  <div className="mt-1 text-sm text-slate-100">{research.overview?.schoolType || "Unknown"}</div>
-                </div>
-                <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4">
-                  <div className="text-xs text-slate-400">Age range</div>
-                  <div className="mt-1 text-sm text-slate-100">{research.overview?.ageRange || "Unknown"}</div>
-                </div>
-                <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4">
-                  <div className="text-xs text-slate-400">Approx. size</div>
-                  <div className="mt-1 text-sm text-slate-100">{research.overview?.approxSize || "Unknown"}</div>
-                </div>
-                <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4">
-                  <div className="text-xs text-slate-400">Specialisms</div>
-                  <div className="mt-1 text-sm text-slate-100">
-                    {research.overview?.specialisms?.length ? research.overview.specialisms.join(", ") : "Unknown"}
+      {research ? (
+        <div className="mt-6 space-y-5">
+          <TermPanel title="school::overview">
+            <div className="mb-3 flex items-center justify-end text-xs text-[var(--term-text-muted)]">
+              {research.schoolName}
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {[
+                ["School type", research.overview?.schoolType || "Unknown"],
+                ["Age range", research.overview?.ageRange || "Unknown"],
+                ["Approx. size", research.overview?.approxSize || "Unknown"],
+                [
+                  "Specialisms",
+                  research.overview?.specialisms?.length
+                    ? research.overview.specialisms.join(", ")
+                    : "Unknown",
+                ],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="border border-[var(--term-border)] bg-black/40 p-3"
+                >
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--term-text-comment)]">
+                    // {label}
                   </div>
+                  <div className="mt-1 text-sm text-white">{value}</div>
                 </div>
+              ))}
+            </div>
+          </TermPanel>
+
+          <TermPanel title="ofsted::summary">
+            <div className="mb-3 flex items-center justify-end">
+              <span
+                className="whitespace-pre text-[10px] font-bold tracking-tight"
+                style={{ color: ratingDisplay.color }}
+              >
+                {ratingDisplay.tag}
+              </span>
+            </div>
+            <ul className="space-y-2 text-sm text-[var(--term-text)]">
+              {(research.ofsted?.keyFindings?.length
+                ? research.ofsted.keyFindings
+                : ["No reliable key findings provided."]
+              )
+                .slice(0, 6)
+                .map((x) => (
+                  <li
+                    key={x}
+                    className="border border-[var(--term-border)] bg-black/40 p-3"
+                  >
+                    {x}
+                  </li>
+                ))}
+            </ul>
+            {ofsted && ofsted.ok ? (
+              <div className="mt-3 text-[10px] uppercase tracking-[0.18em] text-[var(--term-text-comment)]">
+                // external source attempt:{" "}
+                {typeof ofsted.data.source === "string" ? ofsted.data.source : "Unknown"}
+              </div>
+            ) : null}
+          </TermPanel>
+
+          <TermPanel title="science::department">
+            <div className="border border-[var(--term-border)] bg-black/40 p-3">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--term-text-comment)]">
+                // reputation
+              </div>
+              <div className="mt-1 text-sm text-white">
+                {research.scienceDepartment?.reputation || "Unknown"}
               </div>
             </div>
+            <ul className="mt-3 space-y-2 text-sm text-[var(--term-text)]">
+              {(research.scienceDepartment?.notes?.length
+                ? research.scienceDepartment.notes
+                : ["No reliable science department notes provided."]
+              )
+                .slice(0, 8)
+                .map((x) => (
+                  <li
+                    key={x}
+                    className="border border-[var(--term-border)] bg-black/40 p-3"
+                  >
+                    {x}
+                  </li>
+                ))}
+            </ul>
+          </TermPanel>
 
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-base font-semibold text-slate-200">Ofsted Summary</h2>
-                <span className={classNames("rounded-full border px-3 py-1 text-xs font-semibold", ratingColor(effectiveRating))}>
-                  {effectiveRating || "Unknown"}
-                </span>
+          <TermPanel title="community::context">
+            <div className="border border-[var(--term-border)] bg-black/40 p-3">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--term-text-comment)]">
+                // typical intake
               </div>
+              <div className="mt-1 text-sm text-white">
+                {research.communityContext?.intake || "Unknown"}
+              </div>
+            </div>
+            <ul className="mt-3 space-y-2 text-sm text-[var(--term-text)]">
+              {(research.communityContext?.contextNotes?.length
+                ? research.communityContext.contextNotes
+                : ["No reliable community context notes provided."]
+              )
+                .slice(0, 8)
+                .map((x) => (
+                  <li
+                    key={x}
+                    className="border border-[var(--term-border)] bg-black/40 p-3"
+                  >
+                    {x}
+                  </li>
+                ))}
+            </ul>
+          </TermPanel>
 
-              <ul className="space-y-2 text-sm text-slate-200">
-                {(research.ofsted?.keyFindings?.length ? research.ofsted.keyFindings : ["No reliable key findings provided."])
-                  .slice(0, 6)
-                  .map((x) => (
-                    <li key={x} className="rounded-xl border border-slate-800 bg-slate-900/30 p-3">
-                      {x}
-                    </li>
-                  ))}
-              </ul>
+          <TermPanel title="talking::points">
+            <ul className="space-y-2">
+              {(research.talkingPoints?.length
+                ? research.talkingPoints
+                : ["No suggested talking points provided."]
+              )
+                .slice(0, 10)
+                .map((x) => (
+                  <li
+                    key={x}
+                    className="border border-cyan-400/30 bg-cyan-400/5 p-3 text-sm text-cyan-100"
+                  >
+                    {x}
+                  </li>
+                ))}
+            </ul>
 
-              {ofsted && ofsted.ok ? (
-                <div className="mt-3 text-xs text-slate-500">
-                  External source attempt: {typeof ofsted.data.source === "string" ? ofsted.data.source : "Unknown"}
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <TermButton variant="primary" onClick={onUseNotes}>
+                [ use notes in application ]
+              </TermButton>
+              {research.verificationNotes?.length ? (
+                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--term-text-comment)]">
+                  // verify:{" "}
+                  {research.verificationNotes.slice(0, 2).join(" ")}
                 </div>
               ) : null}
             </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-              <h2 className="mb-3 text-base font-semibold text-slate-200">Science Department</h2>
-              <div className="text-sm text-slate-200">
-                <div className="mb-2 rounded-xl border border-slate-800 bg-slate-900/30 p-4">
-                  <div className="text-xs text-slate-400">Reputation</div>
-                  <div className="mt-1">{research.scienceDepartment?.reputation || "Unknown"}</div>
-                </div>
-                <ul className="space-y-2">
-                  {(research.scienceDepartment?.notes?.length ? research.scienceDepartment.notes : ["No reliable science department notes provided."])
-                    .slice(0, 8)
-                    .map((x) => (
-                      <li key={x} className="rounded-xl border border-slate-800 bg-slate-900/30 p-3">
-                        {x}
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-              <h2 className="mb-3 text-base font-semibold text-slate-200">Community Context</h2>
-              <div className="rounded-xl border border-slate-800 bg-slate-900/30 p-4 text-sm text-slate-200">
-                <div className="text-xs text-slate-400">Typical intake</div>
-                <div className="mt-1">{research.communityContext?.intake || "Unknown"}</div>
-              </div>
-              <ul className="mt-3 space-y-2 text-sm text-slate-200">
-                {(research.communityContext?.contextNotes?.length ? research.communityContext.contextNotes : ["No reliable community context notes provided."])
-                  .slice(0, 8)
-                  .map((x) => (
-                    <li key={x} className="rounded-xl border border-slate-800 bg-slate-900/30 p-3">
-                      {x}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-              <h2 className="mb-3 text-base font-semibold text-slate-200">Talking Points</h2>
-              <ul className="space-y-2">
-                {(research.talkingPoints?.length ? research.talkingPoints : ["No suggested talking points provided."])
-                  .slice(0, 10)
-                  .map((x) => (
-                    <li
-                      key={x}
-                      className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-3 text-sm text-blue-100"
-                    >
-                      {x}
-                    </li>
-                  ))}
-              </ul>
-
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <button
-                  type="button"
-                  onClick={onUseNotes}
-                  className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-400"
-                >
-                  Use These Notes in Application
-                </button>
-                {research.verificationNotes?.length ? (
-                  <div className="text-xs text-slate-500">
-                    <div className="font-semibold text-slate-400">Verify:</div>
-                    <div>{research.verificationNotes.slice(0, 2).join(" ")}</div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : rawResearch ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-            <h2 className="mb-2 text-base font-semibold text-slate-200">Research</h2>
-            <pre className="whitespace-pre-wrap text-sm text-slate-200">{rawResearch}</pre>
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={onUseNotes}
-                className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-400"
-              >
-                Use These Notes in Application
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="mt-10 text-xs text-slate-500">
-          AI-generated research may not be current or fully accurate. Always verify key facts before your interview.
+          </TermPanel>
         </div>
+      ) : rawResearch ? (
+        <div className="mt-6">
+          <TermPanel title="research::raw">
+            <pre className="whitespace-pre-wrap text-sm text-[var(--term-text)]">
+              {rawResearch}
+            </pre>
+            <div className="mt-5">
+              <TermButton variant="primary" onClick={onUseNotes}>
+                [ use notes in application ]
+              </TermButton>
+            </div>
+          </TermPanel>
+        </div>
+      ) : null}
+
+      <div className="mt-10 text-[10px] uppercase tracking-[0.18em] text-[var(--term-text-comment)]">
+        // ai-generated research may not be current — verify before your interview
       </div>
-    </div>
+    </TermShell>
   );
 }
-
