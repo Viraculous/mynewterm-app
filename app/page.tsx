@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { TermShell, TermStat, TermPanel, TermStatusTag, TermButton } from "@/components/term";
 
 type ApplicationRow = {
   id: number;
@@ -25,92 +26,6 @@ function isWithinNextDays(dateStr: string, days: number) {
   const end = new Date(start);
   end.setDate(end.getDate() + days);
   return d >= start && d <= end;
-}
-
-function badgeStyles(status: string): CSSProperties {
-  const base: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "4px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 700,
-    border: "1px solid transparent",
-    whiteSpace: "nowrap",
-  };
-
-  switch (status) {
-    case "Drafting":
-      return {
-        ...base,
-        color: "#FDE68A",
-        background: "rgba(245,158,11,0.15)",
-        borderColor: "rgba(245,158,11,0.35)",
-      };
-    case "Submitted":
-      return {
-        ...base,
-        color: "#93C5FD",
-        background: "rgba(59,130,246,0.15)",
-        borderColor: "rgba(59,130,246,0.35)",
-      };
-    case "Interview":
-      return {
-        ...base,
-        color: "#86EFAC",
-        background: "rgba(34,197,94,0.15)",
-        borderColor: "rgba(34,197,94,0.35)",
-      };
-    case "Offer":
-      return {
-        ...base,
-        color: "#6EE7B7",
-        background: "rgba(16,185,129,0.15)",
-        borderColor: "rgba(16,185,129,0.35)",
-      };
-    case "Unsuccessful":
-      return {
-        ...base,
-        color: "#FCA5A5",
-        background: "rgba(239,68,68,0.15)",
-        borderColor: "rgba(239,68,68,0.35)",
-      };
-    case "Withdrawn":
-      return {
-        ...base,
-        color: "#CBD5E1",
-        background: "rgba(148,163,184,0.14)",
-        borderColor: "rgba(148,163,184,0.30)",
-      };
-    default:
-      return {
-        ...base,
-        color: "#E5E7EB",
-        background: "rgba(255,255,255,0.08)",
-        borderColor: "rgba(255,255,255,0.15)",
-      };
-  }
-}
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        borderRadius: 16,
-        padding: 16,
-        minHeight: 88,
-      }}
-    >
-      <div style={{ fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(229,231,235,0.70)", fontWeight: 800 }}>
-        {label}
-      </div>
-      <div style={{ marginTop: 10, fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em" }}>
-        {value}
-      </div>
-    </div>
-  );
 }
 
 export default function DashboardHomePage() {
@@ -140,8 +55,12 @@ export default function DashboardHomePage() {
   const stats = useMemo(() => {
     const total = apps.length;
     const interviews = apps.filter((a) => a.status === "Interview").length;
-    const closingThisWeek = apps.filter((a) => (a.closing_date ? isWithinNextDays(a.closing_date, 7) : false)).length;
-    const statementsReady = apps.filter((a) => Boolean(a.personal_statement && a.personal_statement.trim().length > 0)).length;
+    const closingThisWeek = apps.filter((a) =>
+      a.closing_date ? isWithinNextDays(a.closing_date, 7) : false,
+    ).length;
+    const statementsReady = apps.filter((a) =>
+      Boolean(a.personal_statement && a.personal_statement.trim().length > 0),
+    ).length;
     return { total, interviews, closingThisWeek, statementsReady };
   }, [apps]);
 
@@ -161,134 +80,91 @@ export default function DashboardHomePage() {
   }, [apps]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0F1E", color: "#E5E7EB" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 18px 60px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 14,
-            flexWrap: "wrap",
-            marginBottom: 16,
-          }}
-        >
-          <div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em", margin: 0 }}>
-              Welcome to MyNewTerm Helper
-            </h1>
-            <div style={{ marginTop: 6, color: "rgba(229,231,235,0.75)", fontSize: 13 }}>
-              Track applications, deadlines, and statement progress.
-            </div>
+    <TermShell prompt="./dashboard">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">
+            <span className="text-[var(--term-lime)]">{">"}</span> dashboard
+          </h1>
+          <div className="mt-1 text-sm text-[var(--term-text-muted)]">
+            // tracking applications, deadlines, and statement progress
           </div>
-
-          <Link
-            href="/apply"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "11px 14px",
-              borderRadius: 14,
-              background: "rgba(59,130,246,0.20)",
-              color: "#E5E7EB",
-              border: "1px solid rgba(59,130,246,0.35)",
-              textDecoration: "none",
-              fontWeight: 750,
-            }}
-          >
-            Start New Application
-          </Link>
         </div>
+        <Link href="/apply">
+          <TermButton variant="primary">[+] new application</TermButton>
+        </Link>
+      </div>
 
-        {error ? (
-          <div
-            style={{
-              marginBottom: 14,
-              padding: 12,
-              borderRadius: 14,
-              border: "1px solid rgba(239,68,68,0.35)",
-              background: "rgba(239,68,68,0.12)",
-              color: "#FCA5A5",
-              fontWeight: 650,
-            }}
-          >
-            {error}
-          </div>
-        ) : null}
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-            gap: 12,
-          }}
-        >
-          <StatCard label="Total Applications" value={stats.total} />
-          <StatCard label="Interviews" value={stats.interviews} />
-          <StatCard label="Closing This Week" value={stats.closingThisWeek} />
-          <StatCard label="Statements Ready" value={stats.statementsReady} />
+      {error ? (
+        <div className="mt-6 border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300">
+          <span className="font-bold">// error: </span>
+          {error}
         </div>
+      ) : null}
 
-        <div style={{ marginTop: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, letterSpacing: "-0.01em" }}>
-              Recent Applications
-            </h2>
-            <Link href="/tracker" style={{ color: "rgba(147,197,253,0.95)", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
-              View Tracker
-            </Link>
-          </div>
-
-          <div
-            style={{
-              marginTop: 10,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.10)",
-              borderRadius: 16,
-              overflow: "hidden",
-            }}
-          >
-            {loading ? (
-              <div style={{ padding: 16, color: "rgba(229,231,235,0.8)" }}>Loading…</div>
-            ) : recent.length === 0 ? (
-              <div style={{ padding: 16, color: "rgba(229,231,235,0.8)" }}>
-                No applications yet.{" "}
-                <Link href="/apply" style={{ color: "rgba(147,197,253,0.95)", textDecoration: "none", fontWeight: 700 }}>
-                  Start your first one
-                </Link>
-                .
-              </div>
-            ) : (
-              <div>
-                {recent.map((a, idx) => (
-                  <div
-                    key={a.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      padding: "12px 14px",
-                      borderTop: idx === 0 ? "none" : "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, color: "rgba(229,231,235,0.95)" }}>{a.school_name}</div>
-                      <div style={{ marginTop: 3, fontSize: 13, color: "rgba(229,231,235,0.72)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {a.role_title}
-                      </div>
-                    </div>
-                    <div style={{ flexShrink: 0 }}>
-                      <span style={badgeStyles(a.status)}>{a.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+      <div className="mt-8">
+        <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-[var(--term-text-comment)]">
+          // metrics
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <TermStat label="Total" value={stats.total} />
+          <TermStat label="Interviews" value={stats.interviews} />
+          <TermStat label="Closing/7d" value={stats.closingThisWeek} />
+          <TermStat label="Statements" value={stats.statementsReady} />
         </div>
       </div>
-    </div>
+
+      <div className="mt-10">
+        <div className="mb-3 flex items-baseline justify-between border-b border-[var(--term-border)] pb-2">
+          <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-300">
+            ▸ recent::applications
+          </h2>
+          <Link
+            href="/tracker"
+            className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--term-lime)] hover:underline"
+          >
+            [view tracker]
+          </Link>
+        </div>
+        <TermPanel padded={false}>
+          {loading ? (
+            <div className="px-4 py-4 text-sm text-[var(--term-text-muted)]">
+              // loading…
+            </div>
+          ) : recent.length === 0 ? (
+            <div className="px-4 py-4 text-sm text-[var(--term-text-muted)]">
+              // no applications yet —{" "}
+              <Link
+                href="/apply"
+                className="text-[var(--term-lime)] hover:underline"
+              >
+                start your first one
+              </Link>
+            </div>
+          ) : (
+            <div>
+              {recent.map((a, idx) => (
+                <div
+                  key={a.id}
+                  className={`flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-cyan-400/5 ${
+                    idx > 0 ? "border-t border-cyan-400/10" : ""
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate font-bold text-white">
+                      {a.school_name}
+                    </div>
+                    <div className="mt-0.5 truncate text-xs text-[var(--term-text-muted)]">
+                      {a.role_title}
+                    </div>
+                  </div>
+                  <TermStatusTag status={a.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </TermPanel>
+      </div>
+    </TermShell>
   );
 }
