@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, type CSSProperties, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+  TermShell,
+  TermPanel,
+  TermButton,
+  TermStatusTag,
+  TermSelect,
+} from "@/components/term";
 
 type ApplicationRow = {
   id: number;
@@ -24,36 +31,6 @@ const STATUSES = [
   "Unsuccessful",
   "Withdrawn",
 ] as const;
-
-function badgeStyles(status: string): CSSProperties {
-  const base: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "4px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 600,
-    border: "1px solid transparent",
-    whiteSpace: "nowrap",
-  };
-
-  switch (status) {
-    case "Drafting":
-      return { ...base, color: "#FDE68A", background: "rgba(245,158,11,0.15)", borderColor: "rgba(245,158,11,0.35)" };
-    case "Submitted":
-      return { ...base, color: "#93C5FD", background: "rgba(59,130,246,0.15)", borderColor: "rgba(59,130,246,0.35)" };
-    case "Interview":
-      return { ...base, color: "#86EFAC", background: "rgba(34,197,94,0.15)", borderColor: "rgba(34,197,94,0.35)" };
-    case "Offer":
-      return { ...base, color: "#6EE7B7", background: "rgba(16,185,129,0.15)", borderColor: "rgba(16,185,129,0.35)" };
-    case "Unsuccessful":
-      return { ...base, color: "#FCA5A5", background: "rgba(239,68,68,0.15)", borderColor: "rgba(239,68,68,0.35)" };
-    case "Withdrawn":
-      return { ...base, color: "#CBD5E1", background: "rgba(148,163,184,0.14)", borderColor: "rgba(148,163,184,0.30)" };
-    default:
-      return { ...base, color: "#E5E7EB", background: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.15)" };
-  }
-}
 
 export default function TrackerPage() {
   const [apps, setApps] = useState<ApplicationRow[]>([]);
@@ -103,115 +80,70 @@ export default function TrackerPage() {
     }
   }
 
-  const pageStyle: CSSProperties = {
-    minHeight: "100vh",
-    background: "#0A0F1E",
-    color: "#E5E7EB",
-  };
-
   return (
-    <div style={pageStyle}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 18px 60px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 16,
-            flexWrap: "wrap",
-            marginBottom: 16,
-          }}
-        >
-          <div>
-            <h1 style={{ fontSize: 28, fontWeight: 750, letterSpacing: "-0.02em", margin: 0 }}>
-              Application Tracker
-            </h1>
-            <div style={{ marginTop: 6, color: "rgba(229,231,235,0.75)", fontSize: 13 }}>
-              Track science teaching applications, deadlines, and statements.
-            </div>
+    <TermShell prompt="./tracker">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold uppercase tracking-tight text-white md:text-3xl">
+            <span className="text-[var(--term-lime)]">{">"}</span> tracker
+          </h1>
+          <div className="mt-1 text-sm text-[var(--term-text-muted)]">
+            // applications, deadlines, and statements
           </div>
-
-          <Link
-            href="/apply"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "10px 14px",
-              borderRadius: 12,
-              background: "rgba(99,102,241,0.18)",
-              color: "#E5E7EB",
-              border: "1px solid rgba(99,102,241,0.35)",
-              textDecoration: "none",
-              fontWeight: 650,
-            }}
-          >
-            New Application
-          </Link>
         </div>
+        <Link href="/apply">
+          <TermButton variant="primary">[+] new application</TermButton>
+        </Link>
+      </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          <button
-            type="button"
+      <div className="mt-6">
+        <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-[var(--term-text-comment)]">
+          // filter
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <FilterPill
+            active={filterStatus === null}
             onClick={() => setFilterStatus(null)}
-            style={{
-              padding: "8px 10px",
-              borderRadius: 999,
-              background: filterStatus === null ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)",
-              color: "#E5E7EB",
-              border: "1px solid rgba(255,255,255,0.12)",
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 600,
-            }}
           >
-            All
-          </button>
+            all
+          </FilterPill>
           {STATUSES.map((s) => (
-            <button
+            <FilterPill
               key={s}
-              type="button"
+              active={filterStatus === s}
               onClick={() => setFilterStatus(s)}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 999,
-                background: filterStatus === s ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.06)",
-                color: "#E5E7EB",
-                border: "1px solid rgba(255,255,255,0.12)",
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
             >
-              {s}
-            </button>
+              {s.toLowerCase()}
+            </FilterPill>
           ))}
         </div>
+      </div>
 
-        <div
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            borderRadius: 16,
-            overflow: "hidden",
-          }}
-        >
+      <div className="mt-6">
+        <TermPanel padded={false}>
           {loading ? (
-            <div style={{ padding: 16, color: "rgba(229,231,235,0.8)" }}>Loading…</div>
+            <div className="px-4 py-4 text-sm text-[var(--term-text-muted)]">
+              // loading…
+            </div>
           ) : error ? (
-            <div style={{ padding: 16, color: "#FCA5A5" }}>{error}</div>
+            <div className="px-4 py-4 text-sm text-red-300">
+              <span className="font-bold">// error: </span>
+              {error}
+            </div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 16, color: "rgba(229,231,235,0.8)" }}>No applications yet</div>
+            <div className="px-4 py-4 text-sm text-[var(--term-text-muted)]">
+              // no applications match this filter
+            </div>
           ) : (
-            <div style={{ width: "100%", overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
+            <div className="w-full overflow-x-auto">
+              <table className="w-full border-separate border-spacing-0">
                 <thead>
-                  <tr style={{ background: "rgba(255,255,255,0.04)" }}>
-                    <th style={thStyle}>School</th>
-                    <th style={thStyle}>Role</th>
-                    <th style={thStyle}>Closing date</th>
-                    <th style={thStyle}>Status</th>
-                    <th style={{ ...thStyle, width: 220 }}>Actions</th>
+                  <tr className="bg-cyan-400/5">
+                    <Th>school</Th>
+                    <Th>role</Th>
+                    <Th>closing</Th>
+                    <Th>status</Th>
+                    <Th className="w-[220px]">actions</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -219,88 +151,68 @@ export default function TrackerPage() {
                     const expanded = expandedId === a.id;
                     return (
                       <Fragment key={a.id}>
-                        <tr style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                          <td style={tdStyle}>
-                            <div style={{ fontWeight: 700 }}>{a.school_name}</div>
-                          </td>
-                          <td style={tdStyle}>
-                            <div style={{ color: "rgba(229,231,235,0.92)" }}>{a.role_title}</div>
-                          </td>
-                          <td style={tdStyle}>
-                            <div style={{ color: "rgba(229,231,235,0.85)" }}>
+                        <tr className="border-t border-cyan-400/10 align-top transition-colors hover:bg-cyan-400/5">
+                          <Td>
+                            <div className="font-bold text-white">
+                              {a.school_name}
+                            </div>
+                          </Td>
+                          <Td>
+                            <div className="text-[var(--term-text)]">
+                              {a.role_title}
+                            </div>
+                          </Td>
+                          <Td>
+                            <div className="text-[var(--term-text-muted)]">
                               {a.closing_date?.trim() ? a.closing_date : "—"}
                             </div>
-                          </td>
-                          <td style={tdStyle}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                              <span style={badgeStyles(a.status)}>{a.status}</span>
-                              <select
+                          </Td>
+                          <Td>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <TermStatusTag status={a.status} />
+                              <TermSelect
                                 value={a.status}
-                                onChange={(e) => void updateStatus(a.id, e.target.value)}
-                                style={{
-                                  background: "rgba(10,15,30,0.8)",
-                                  color: "#E5E7EB",
-                                  border: "1px solid rgba(255,255,255,0.14)",
-                                  borderRadius: 10,
-                                  padding: "6px 8px",
-                                  fontSize: 13,
-                                }}
+                                onChange={(e) =>
+                                  void updateStatus(a.id, e.target.value)
+                                }
+                                aria-label={`Status for ${a.school_name}`}
+                                className="w-auto py-1 text-xs"
                               >
                                 {STATUSES.map((s) => (
                                   <option key={s} value={s}>
                                     {s}
                                   </option>
                                 ))}
-                              </select>
+                              </TermSelect>
                             </div>
-                          </td>
-                          <td style={tdStyle}>
-                            <button
-                              type="button"
-                              onClick={() => setExpandedId((cur) => (cur === a.id ? null : a.id))}
-                              style={{
-                                padding: "8px 10px",
-                                borderRadius: 12,
-                                background: "rgba(255,255,255,0.06)",
-                                border: "1px solid rgba(255,255,255,0.12)",
-                                color: "#E5E7EB",
-                                cursor: "pointer",
-                                fontSize: 13,
-                                fontWeight: 650,
-                              }}
+                          </Td>
+                          <Td>
+                            <TermButton
+                              variant="secondary"
+                              onClick={() =>
+                                setExpandedId((cur) =>
+                                  cur === a.id ? null : a.id,
+                                )
+                              }
                             >
-                              {expanded ? "Hide Statement" : "View Statement"}
-                            </button>
-                          </td>
+                              {expanded ? "[hide]" : "[view statement]"}
+                            </TermButton>
+                          </Td>
                         </tr>
 
                         {expanded ? (
                           <tr>
                             <td
                               colSpan={5}
-                              style={{
-                                padding: 14,
-                                borderTop: "1px solid rgba(255,255,255,0.08)",
-                                background: "rgba(255,255,255,0.02)",
-                              }}
+                              className="border-t border-cyan-400/10 bg-black/40 p-4"
                             >
-                              <div style={{ fontSize: 13, color: "rgba(229,231,235,0.75)", marginBottom: 8 }}>
-                                Personal statement
+                              <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-[var(--term-text-comment)]">
+                                // personal statement
                               </div>
-                              <div
-                                style={{
-                                  whiteSpace: "pre-wrap",
-                                  lineHeight: 1.55,
-                                  color: "rgba(229,231,235,0.92)",
-                                  background: "rgba(10,15,30,0.55)",
-                                  border: "1px solid rgba(255,255,255,0.10)",
-                                  borderRadius: 14,
-                                  padding: 12,
-                                }}
-                              >
+                              <div className="border border-[var(--term-border)] bg-black/40 p-3 text-[13px] leading-relaxed whitespace-pre-wrap text-[var(--term-text)]">
                                 {a.personal_statement?.trim()
                                   ? a.personal_statement
-                                  : "No statement saved yet."}
+                                  : "// no statement saved yet"}
                               </div>
                             </td>
                           </tr>
@@ -312,26 +224,53 @@ export default function TrackerPage() {
               </table>
             </div>
           )}
-        </div>
+        </TermPanel>
       </div>
-    </div>
+    </TermShell>
   );
 }
 
-const thStyle: CSSProperties = {
-  textAlign: "left",
-  padding: "12px 14px",
-  fontSize: 12,
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-  color: "rgba(229,231,235,0.7)",
-  fontWeight: 700,
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
-  whiteSpace: "nowrap",
-};
+function Th({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <th
+      className={`whitespace-nowrap border-b border-[var(--term-border)] px-4 py-2 text-left text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400/70 ${className}`}
+    >
+      {children}
+    </th>
+  );
+}
 
-const tdStyle: CSSProperties = {
-  padding: "12px 14px",
-  verticalAlign: "top",
-};
+function Td({ children }: { children: React.ReactNode }) {
+  return <td className="px-4 py-3 align-top">{children}</td>;
+}
 
+function FilterPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-colors",
+        active
+          ? "border-[var(--term-lime)] bg-cyan-400/10 text-white"
+          : "border-[var(--term-border)] bg-transparent text-[var(--term-text-muted)] hover:border-[var(--term-border-strong)] hover:text-cyan-100",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
